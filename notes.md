@@ -82,22 +82,26 @@ news=> select count(*) from log;
 ### 1. What are the most popular three articles of all time?
 
 ```
-news=>
 SELECT articles.title, COUNT(log.status) as views
-FROM articles, log
-WHERE log.path = '/article/' || articles.slug
-GROUP BY articles.title
-ORDER BY views DESC
-LIMIT 3;
-              title               | views
-----------------------------------+--------
- Candidate is jerk, alleges rival | 338647
- Bears love berries, alleges bear | 253801
- Bad things gone, say good people | 170098
-(3 rows)
+    FROM articles, log
+    WHERE log.path = '/article/' || articles.slug
+    GROUP BY articles.title
+    ORDER BY views DESC
+    LIMIT 3;
 ```
 
 ### 2. Who are the most popular article authors of all time?
+
+authors.id => articles.author
+articles.slug => log.path
+
+```
+SELECT count(log.id), authors.name FROM articles, authors, log
+WHERE (log.path = '/article/' || articles.slug)
+    AND (articles.author = authors.id)
+GROUP BY authors.name
+ORDER BY count(log.id) DESC;
+```
 
 ### 3. On which days did more than 1% of requests lead to errors?
 
@@ -111,51 +115,12 @@ news=> SELECT Count(*),status FROM log GROUP BY status;
 (2 rows)
 ```
 
-Looks like we have data for the month of July 2016:
-```
-news=> SELECT Count(*),time::date FROM log GROUP BY time::date;
- count |    time
--------+------------
- 38705 | 2016-07-01
- 55200 | 2016-07-02
- 54866 | 2016-07-03
- 54903 | 2016-07-04
- 54585 | 2016-07-05
- 54774 | 2016-07-06
- 54740 | 2016-07-07
- 55084 | 2016-07-08
- 55236 | 2016-07-09
- 54489 | 2016-07-10
- 54497 | 2016-07-11
- 54839 | 2016-07-12
- 55180 | 2016-07-13
- 55196 | 2016-07-14
- 54962 | 2016-07-15
- 54498 | 2016-07-16
- 55907 | 2016-07-17
- 55589 | 2016-07-18
- 55341 | 2016-07-19
- 54557 | 2016-07-20
- 55241 | 2016-07-21
- 55206 | 2016-07-22
- 54894 | 2016-07-23
- 55100 | 2016-07-24
- 54613 | 2016-07-25
- 54378 | 2016-07-26
- 54489 | 2016-07-27
- 54797 | 2016-07-28
- 54951 | 2016-07-29
- 55073 | 2016-07-30
- 45845 | 2016-07-31
-(31 rows)
-```
-
 This gets all the data for the errors:
 ```
 SELECT Count(*),status,time::date
-FROM log
-GROUP BY time::date,status
-ORDER BY time::date;
+    FROM log
+    GROUP BY time::date,status
+    ORDER BY time::date;
 ```
 
 Create two views:
@@ -181,10 +146,11 @@ SELECT successes_per_day.success_count AS successes,
        errors_per_day.error_count AS errors,
        successes_per_day.date AS date,
        ROUND((errors_per_day.error_count::numeric /
-        successes_per_day.success_count * 100),2) AS error_percent
+        (errors_per_day.error_count + successes_per_day.success_count) * 100),2)
+            AS error_percent
     FROM successes_per_day, errors_per_day
     WHERE successes_per_day.date = errors_per_day.date
       AND (errors_per_day.error_count::numeric /
-           successes_per_day.success_count * 100) >= 1
+           (errors_per_day.error_count + successes_per_day.success_count) * 100) >= 1
     ORDER BY date;
 ```
