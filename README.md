@@ -3,8 +3,6 @@
 Logs Analysis project for the Udacity Full Stack Web Developer
 Nanodegree program
 
-## Design and approach
-
 ## Installation
 
 Clone this repository and then copy the file `reports.py` to the Vagrant
